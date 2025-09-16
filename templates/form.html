@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Placement Attendance - Student Panel</title>
+</head>
+<body>
+    <h2>Placement Candidate Attendance</h2>
+    <form method="POST">
+        <label>Name:</label><br>
+        <input type="text" name="name" required><br><br>
+
+        <label>Roll No:</label><br>
+        <input type="text" name="roll" required><br><br>
+
+        <label>Date:</label><br>
+        <input type="date" name="date" required><br><br>
+
+        <label>Company / Drive Name:</label><br>
+        <input type="text" name="company" required><br><br>
+
+        <label>Status:</label><br>
+        <select name="status" required>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+        </select><br><br>
+
+        <button type="submit">Submit Attendance</button>
+    </form>
+</body>
+</html>
