@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Attendance Records</title>
+</head>
+<body>
+    <h2>📊 Attendance Records</h2>
+    <a href="/download">📥 Download Excel</a> | 
+    <a href="/logout">🚪 Logout</a>
+    <br><br>
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>Name</th><th>Roll No</th><th>Date</th><th>Company</th><th>Status</th>
+        </tr>
+        {% for row in records %}
+        <tr>
+            <td>{{ row["Name"] }}</td>
+            <td>{{ row["Roll No"] }}</td>
+            <td>{{ row["Date"] }}</td>
+            <td>{{ row["Company"] }}</td>
+            <td>{{ row["Status"] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
