@@ -48,7 +48,7 @@ def records():
     if not session.get("admin"):
         return redirect(url_for("admin"))
     response = supabase.table("attendance").select("*").execute()
-    records = response.data
+    records = response.data or []   # ✅ safe fallback
     return render_template("records.html", records=records)
 
 # ---------------- Download as Excel ----------------
@@ -57,25 +57,26 @@ def download():
     if not session.get("admin"):
         return redirect(url_for("admin"))
     response = supabase.table("attendance").select("*").execute()
-    df = pd.DataFrame(response.data)
+    records = response.data or []   # ✅ safe fallback
+
+    if not records:
+        return "⚠ No records found in database."
+
+    df = pd.DataFrame(records)
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Attendance")
-    output.seek(0)
+    output.seek(0)   # ✅ reset pointer
 
-    return send_file(output, as_attachment=True, download_name="attendance.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="attendance.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
-# ---------------- Logout ----------------
-@app.route("/logout")
-def logout():
-    session.pop("admin", None)
-    return redirect(url_for("admin"))
-
-# ✅ Vercel entry
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
+# ---------------- Download Company-specific Excel ----------------
 @app.route("/download_company", methods=["POST"])
 def download_company():
     if not session.get("admin"):
@@ -86,15 +87,17 @@ def download_company():
         return "❌ Please enter a company name."
 
     response = supabase.table("attendance").select("*").eq("company", company).execute()
-    df = pd.DataFrame(response.data)
+    records = response.data or []   # ✅ safe fallback
 
-    if df.empty:
+    if not records:
         return f"⚠ No records found for {company}"
+
+    df = pd.DataFrame(records)
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name=f"{company}_Attendance")
-    output.seek(0)
+    output.seek(0)   # ✅ reset pointer
 
     return send_file(
         output,
@@ -103,3 +106,12 @@ def download_company():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+# ---------------- Logout ----------------
+@app.route("/logout")
+def logout():
+    session.pop("admin", None)
+    return redirect(url_for("admin"))
+
+# ✅ Vercel entry
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
