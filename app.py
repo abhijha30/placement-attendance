@@ -1,32 +1,32 @@
 from flask import Flask, render_template, request, redirect, send_file, session, url_for
 import pandas as pd
+import io
 import os
+from supabase import create_client, Client
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
-FILE_NAME = "placement_attendance.xlsx"
 ADMIN_PASSWORD = "itsplacement"  # change this
 
-# Create Excel if missing
-if not os.path.exists(FILE_NAME):
-    pd.DataFrame(columns=["Name", "Roll No", "Course", "Section", "Date", "Company", "Status"]).to_excel(FILE_NAME, index=False)
+# ---------------- Supabase Setup ----------------
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ---------------- Student Panel ----------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        df = pd.read_excel(FILE_NAME)
-        new_data = {
-            "Name": request.form.get("name"),
-            "Roll No": request.form.get("roll"),
-            "Course": request.form.get("course"),
-            "Section": request.form.get("section"),
-            "Date": request.form.get("date"),
-            "Company": request.form.get("company"),
-            "Status": request.form.get("status")
+        data = {
+            "name": request.form.get("name"),
+            "roll": request.form.get("roll"),
+            "course": request.form.get("course"),
+            "section": request.form.get("section"),
+            "date": request.form.get("date"),
+            "company": request.form.get("company"),
+            "status": request.form.get("status"),
         }
-        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-        df.to_excel(FILE_NAME, index=False)
+        supabase.table("attendance").insert(data).execute()
         return render_template("submitted.html")
     return render_template("form.html")
 
@@ -47,15 +47,24 @@ def admin():
 def records():
     if not session.get("admin"):
         return redirect(url_for("admin"))
-    df = pd.read_excel(FILE_NAME)
-    records = df.to_dict(orient="records")
+    response = supabase.table("attendance").select("*").execute()
+    records = response.data
     return render_template("records.html", records=records)
 
+# ---------------- Download as Excel ----------------
 @app.route("/download")
 def download():
     if not session.get("admin"):
         return redirect(url_for("admin"))
-    return send_file(FILE_NAME, as_attachment=True)
+    response = supabase.table("attendance").select("*").execute()
+    df = pd.DataFrame(response.data)
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Attendance")
+    output.seek(0)
+
+    return send_file(output, as_attachment=True, download_name="attendance.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 # ---------------- Logout ----------------
 @app.route("/logout")
@@ -63,14 +72,6 @@ def logout():
     session.pop("admin", None)
     return redirect(url_for("admin"))
 
-# ✅ Vercel handler
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
-from werkzeug.serving import run_simple
-
-# expose Flask app as "app" for Vercel
-app = app
-
-# only for local dev
+# ✅ Vercel entry
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
