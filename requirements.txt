@@ -1,5 +1,5 @@
 flask
 pandas
-openpyxl
 gunicorn
-werkzeug
+supabase
+psycopg2-binary
