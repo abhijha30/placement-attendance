@@ -63,9 +63,14 @@ def logout():
     session.pop("admin", None)
     return redirect(url_for("admin"))
 
-# ✅ Vercel expects this
-def handler(event, context):
-    return app(event, context)
+# ✅ Vercel handler
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from werkzeug.serving import run_simple
 
+# expose Flask app as "app" for Vercel
+app = app
+
+# only for local dev
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
