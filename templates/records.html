@@ -23,19 +23,20 @@
         <th>Date</th><th>Company</th><th>Status</th>
       </tr>
     </thead>
-    <tbody>
-    {% for row in records %}
-      <tr>
-        <td>{{ row["name"] }}</td>
-        <td>{{ row["roll"] }}</td>
-        <td>{{ row["course"] }}</td>
-        <td>{{ row["section"] }}</td>
-        <td>{{ row["date"] }}</td>
-        <td>{{ row["company"] }}</td>
-        <td>{{ row["status"] }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
+   <tbody>
+{% for row in records %}
+  <tr>
+    <td>{{ row["name"] }}</td>
+    <td>{{ row["roll"] }}</td>
+    <td>{{ row["course"] }}</td>
+    <td>{{ row["section"] }}</td>
+    <td>{{ row["date"] }}</td>
+    <td>{{ row["company"] }}</td>
+    <td>{{ row["status"] }}</td>
+  </tr>
+{% endfor %}
+</tbody>
+
   </table>
 </body>
 </html>
