@@ -6,8 +6,16 @@
 </head>
 <body class="container mt-4">
   <h2 class="mb-3">📊 Attendance Records</h2>
-  <a href="/download" class="btn btn-primary btn-sm">📥 Download Excel</a>
+
+  <a href="/download" class="btn btn-primary btn-sm">📥 Download All Excel</a>
   <a href="/logout" class="btn btn-danger btn-sm">🚪 Logout</a>
+
+  <!-- Download by Company -->
+  <form method="POST" action="/download_company" class="d-flex mt-3 mb-3">
+    <input type="text" name="company" placeholder="Enter company name" class="form-control me-2" required>
+    <button type="submit" class="btn btn-success">📥 Download by Company</button>
+  </form>
+
   <table class="table table-bordered table-striped table-hover mt-3">
     <thead class="table-dark">
       <tr>
@@ -18,8 +26,20 @@
     <tbody>
     {% for row in records %}
       <tr>
-        <td>{{ row["Name"] }}</td>
-        <td>{{ row["Roll No"] }}</td>
+        <td>{{ row["name"] }}</td>
+        <td>{{ row["roll"] }}</td>
+        <td>{{ row["course"] }}</td>
+        <td>{{ row["section"] }}</td>
+        <td>{{ row["date"] }}</td>
+        <td>{{ row["company"] }}</td>
+        <td>{{ row["status"] }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
+
         <td>{{ row["Course"] }}</td>
         <td>{{ row["Section"] }}</td>
         <td>{{ row["Date"] }}</td>
