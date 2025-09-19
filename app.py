@@ -75,3 +75,31 @@ def logout():
 # ✅ Vercel entry
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+@app.route("/download_company", methods=["POST"])
+def download_company():
+    if not session.get("admin"):
+        return redirect(url_for("admin"))
+
+    company = request.form.get("company")
+    if not company:
+        return "❌ Please enter a company name."
+
+    response = supabase.table("attendance").select("*").eq("company", company).execute()
+    df = pd.DataFrame(response.data)
+
+    if df.empty:
+        return f"⚠ No records found for {company}"
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=f"{company}_Attendance")
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f"{company}_attendance.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
