@@ -71,17 +71,26 @@ def download():
 
     query = supabase.table("attendance").select("*")
 
-    # Apply filters only if selected
+    # Apply filters only if provided
     if filter_date:
         query = query.eq("date", filter_date)
-    if filter_company and filter_company.lower() != "all":
-        query = query.ilike("company", f"%{filter_company}%")
+    if filter_company and filter_company.strip() != "":
+        query = query.ilike("company", f"%{filter_company}%")  # case-insensitive search
 
     response = query.execute()
     df = pd.DataFrame(response.data)
 
     if df.empty:
         return "⚠ No records found!"
+
+    # ✅ Handle full data if no filters given
+    file_name = "attendance.xlsx"
+    if filter_date and filter_company:
+        file_name = f"{filter_company}_{filter_date}_attendance.xlsx"
+    elif filter_date:
+        file_name = f"{filter_date}_attendance.xlsx"
+    elif filter_company:
+        file_name = f"{filter_company}_attendance.xlsx"
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -91,7 +100,7 @@ def download():
     return send_file(
         output,
         as_attachment=True,
-        download_name="attendance.xlsx",
+        download_name=file_name,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
