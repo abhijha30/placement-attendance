@@ -67,13 +67,21 @@ def download():
         return redirect(url_for("admin"))
 
     filter_date = request.args.get("filter_date")
+    filter_company = request.args.get("filter_company")
+
     query = supabase.table("attendance").select("*")
 
+    # Apply filters only if selected
     if filter_date:
         query = query.eq("date", filter_date)
+    if filter_company and filter_company.lower() != "all":
+        query = query.ilike("company", f"%{filter_company}%")
 
     response = query.execute()
     df = pd.DataFrame(response.data)
+
+    if df.empty:
+        return "⚠ No records found!"
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -84,36 +92,6 @@ def download():
         output,
         as_attachment=True,
         download_name="attendance.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-# ---------------- Download Company-specific Excel ----------------
-@app.route("/download_company", methods=["POST"])
-def download_company():
-    if not session.get("admin"):
-        return redirect(url_for("admin"))
-
-    company = request.form.get("company")
-    if not company:
-        return "❌ Please enter a company name."
-
-    response = supabase.table("attendance").select("*").eq("company", company).execute()
-    records = response.data or []   # ✅ safe fallback
-
-    if not records:
-        return f"⚠ No records found for {company}"
-
-    df = pd.DataFrame(records)
-
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name=f"{company}_Attendance")
-    output.seek(0)   # ✅ reset pointer
-
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name=f"{company}_attendance.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
