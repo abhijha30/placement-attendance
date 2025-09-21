@@ -6,29 +6,32 @@
   <title>Admin - Attendance Records</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    .header-bar {
+    .header-panel {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      flex-wrap: wrap;
       margin-bottom: 20px;
+      text-align: center;
     }
-    .header-left {
+    .header-top {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 10px;
     }
-    .header-left img {
+    .header-top img {
       width: 60px;
       height: 60px;
       border-radius: 50%;
       object-fit: cover;
     }
-    .header-right {
+    .header-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-end;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -38,21 +41,19 @@
     <div class="card shadow-lg p-4">
 
       <!-- Header Section -->
-      <div class="header-bar">
-        <!-- Logo + Title -->
-        <div class="header-left">
+      <div class="header-panel">
+        <div class="header-top">
           <img src="{{ url_for('static', filename='placement_logo.png') }}" alt="Placement Logo">
-          <h4 class="mb-0">📊 Attendance Records</h4>
+          <h3 class="mb-0">📊 Attendance Records</h3>
         </div>
 
         <!-- Action Buttons -->
-        <div class="header-right">
+        <div class="header-actions">
           <form method="GET" action="/records" class="d-flex">
             <input type="date" name="filter_date" class="form-control form-control-sm me-2" value="{{ selected_date }}">
             <input type="text" name="filter_company" class="form-control form-control-sm me-2" placeholder="Company" value="{{ selected_company }}">
             <button type="submit" class="btn btn-primary btn-sm">🔎 Filter</button>
           </form>
-
           <a href="/records" class="btn btn-secondary btn-sm">🧹 Clear</a>
           <a href="/download" class="btn btn-success btn-sm">⬇ Download Excel</a>
           <a href="/logout" class="btn btn-danger btn-sm">🚪 Logout</a>
