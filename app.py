@@ -66,24 +66,29 @@ def download():
     if not session.get("admin"):
         return redirect(url_for("admin"))
 
-    filter_date = request.args.get("filter_date")
-    filter_company = request.args.get("filter_company")
+    # Get filters from request
+    filter_date = request.args.get("filter_date", "").strip()
+    filter_company = request.args.get("filter_company", "").strip()
 
     query = supabase.table("attendance").select("*")
 
-    # Apply filters only if provided
+    # Apply filters safely
     if filter_date:
         query = query.eq("date", filter_date)
-    if filter_company and filter_company.strip() != "":
+    if filter_company:
         query = query.ilike("company", f"%{filter_company}%")  # case-insensitive search
 
+    # Execute query
     response = query.execute()
-    df = pd.DataFrame(response.data)
+    records = response.data if response.data else []
 
-    if df.empty:
+    # Convert to DataFrame safely
+    if not records:
         return "⚠ No records found!"
 
-    # ✅ Handle full data if no filters given
+    df = pd.DataFrame(records)
+
+    # Decide file name
     file_name = "attendance.xlsx"
     if filter_date and filter_company:
         file_name = f"{filter_company}_{filter_date}_attendance.xlsx"
@@ -92,6 +97,7 @@ def download():
     elif filter_company:
         file_name = f"{filter_company}_attendance.xlsx"
 
+    # Write Excel file
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Attendance")
