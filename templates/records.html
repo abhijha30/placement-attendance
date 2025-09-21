@@ -10,7 +10,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
       text-align: center;
     }
     .header-top {
@@ -18,20 +18,43 @@
       align-items: center;
       justify-content: center;
       gap: 15px;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
     .header-top img {
-      width: 60px;
-      height: 60px;
+      width: 70px;
+      height: 70px;
       border-radius: 50%;
       object-fit: cover;
+    }
+    .header-top h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
     }
     .header-actions {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
       margin-top: 10px;
+    }
+    .header-actions .btn,
+    .header-actions input {
+      font-size: 1rem;
+      padding: 10px 15px;
+    }
+    @media (max-width: 768px) {
+      .header-top h2 {
+        font-size: 1.5rem;
+      }
+      .header-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+      .header-actions .btn,
+      .header-actions input {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -44,19 +67,19 @@
       <div class="header-panel">
         <div class="header-top">
           <img src="{{ url_for('static', filename='placement_logo.png') }}" alt="Placement Logo">
-          <h3 class="mb-0">📊 Attendance Records</h3>
+          <h2>📊 Attendance Records</h2>
         </div>
 
         <!-- Action Buttons -->
         <div class="header-actions">
-          <form method="GET" action="/records" class="d-flex">
-            <input type="date" name="filter_date" class="form-control form-control-sm me-2" value="{{ selected_date }}">
-            <input type="text" name="filter_company" class="form-control form-control-sm me-2" placeholder="Company" value="{{ selected_company }}">
-            <button type="submit" class="btn btn-primary btn-sm">🔎 Filter</button>
+          <form method="GET" action="/records" class="d-flex flex-wrap gap-2">
+            <input type="date" name="filter_date" class="form-control" value="{{ selected_date }}">
+            <input type="text" name="filter_company" class="form-control" placeholder="Company" value="{{ selected_company }}">
+            <button type="submit" class="btn btn-primary">🔎 Filter</button>
           </form>
-          <a href="/records" class="btn btn-secondary btn-sm">🧹 Clear</a>
-          <a href="/download" class="btn btn-success btn-sm">⬇ Download Excel</a>
-          <a href="/logout" class="btn btn-danger btn-sm">🚪 Logout</a>
+          <a href="/records" class="btn btn-secondary">🧹 Clear</a>
+          <a href="/download" class="btn btn-success">⬇ Download Excel</a>
+          <a href="/logout" class="btn btn-danger">🚪 Logout</a>
         </div>
       </div>
 
