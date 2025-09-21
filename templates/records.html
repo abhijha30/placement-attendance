@@ -21,19 +21,13 @@
 
       <h2 class="text-center mb-4">📊 Attendance Records</h2>
 
-      <!-- Filter Form (Date + Company) -->
+      <!-- Filter Form (Date + Company Input) -->
       <form method="GET" action="/records" class="row g-2 mb-3">
         <div class="col-md-4">
           <input type="date" name="filter_date" class="form-control" value="{{ selected_date }}">
         </div>
         <div class="col-md-4">
-          <select name="filter_company" class="form-select">
-            <option value="All" {% if selected_company == "All" %}selected{% endif %}>All Companies</option>
-            <option value="TCS" {% if selected_company == "TCS" %}selected{% endif %}>TCS</option>
-            <option value="Infosys" {% if selected_company == "Infosys" %}selected{% endif %}>Infosys</option>
-            <option value="Wipro" {% if selected_company == "Wipro" %}selected{% endif %}>Wipro</option>
-            <!-- Add more companies here manually or make it dynamic later -->
-          </select>
+          <input type="text" name="filter_company" class="form-control" placeholder="Company name" value="{{ selected_company }}">
         </div>
         <div class="col-md-4 d-flex">
           <button type="submit" class="btn btn-primary me-2">Filter</button>
@@ -92,4 +86,3 @@
 
 </body>
 </html>
-
