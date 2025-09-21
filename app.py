@@ -6,7 +6,7 @@ from supabase import create_client, Client
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
-ADMIN_PASSWORD = "itsplacement"  # change this
+ADMIN_PASSWORD = "itsplacement"  # change this if needed
 
 # ---------------- Supabase Setup ----------------
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -48,17 +48,25 @@ def records():
     if not session.get("admin"):
         return redirect(url_for("admin"))
 
-    selected_date = request.args.get("filter_date")
+    selected_date = request.args.get("filter_date", "").strip()
+    selected_company = request.args.get("filter_company", "").strip()
+
     query = supabase.table("attendance").select("*")
 
     if selected_date:
         query = query.eq("date", selected_date)
+    if selected_company:
+        query = query.ilike("company", f"%{selected_company}%")
 
     response = query.execute()
-    records = response.data
+    records = response.data if response and response.data else []
 
-    return render_template("records.html", records=records, selected_date=selected_date)
-
+    return render_template(
+        "records.html",
+        records=records,
+        selected_date=selected_date,
+        selected_company=selected_company
+    )
 
 # ---------------- Download as Excel ----------------
 @app.route("/download")
@@ -66,27 +74,30 @@ def download():
     if not session.get("admin"):
         return redirect(url_for("admin"))
 
-    # Get filters from request
+    # Get filters safely
     filter_date = request.args.get("filter_date", "").strip()
     filter_company = request.args.get("filter_company", "").strip()
 
     query = supabase.table("attendance").select("*")
 
-    # Apply filters safely
     if filter_date:
         query = query.eq("date", filter_date)
     if filter_company:
-        query = query.ilike("company", f"%{filter_company}%")  # case-insensitive search
+        query = query.ilike("company", f"%{filter_company}%")
 
-    # Execute query
-    response = query.execute()
-    records = response.data if response.data else []
+    try:
+        response = query.execute()
+        records = response.data if response and response.data else []
+    except Exception as e:
+        return f"⚠ Error fetching data: {str(e)}"
 
-    # Convert to DataFrame safely
     if not records:
         return "⚠ No records found!"
 
-    df = pd.DataFrame(records)
+    try:
+        df = pd.DataFrame.from_records(records)
+    except Exception as e:
+        return f"⚠ Error converting to DataFrame: {str(e)}"
 
     # Decide file name
     file_name = "attendance.xlsx"
@@ -97,11 +108,13 @@ def download():
     elif filter_company:
         file_name = f"{filter_company}_attendance.xlsx"
 
-    # Write Excel file
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Attendance")
-    output.seek(0)
+    try:
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Attendance")
+        output.seek(0)
+    except Exception as e:
+        return f"⚠ Error writing Excel: {str(e)}"
 
     return send_file(
         output,
