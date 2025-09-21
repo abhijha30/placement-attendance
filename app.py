@@ -47,27 +47,38 @@ def admin():
 def records():
     if not session.get("admin"):
         return redirect(url_for("admin"))
-    response = supabase.table("attendance").select("*").execute()
-    records = response.data or []   # ✅ safe fallback
-    return render_template("records.html", records=records)
+
+    selected_date = request.args.get("filter_date")
+    query = supabase.table("attendance").select("*")
+
+    if selected_date:
+        query = query.eq("date", selected_date)
+
+    response = query.execute()
+    records = response.data
+
+    return render_template("records.html", records=records, selected_date=selected_date)
+
 
 # ---------------- Download as Excel ----------------
 @app.route("/download")
 def download():
     if not session.get("admin"):
         return redirect(url_for("admin"))
-    response = supabase.table("attendance").select("*").execute()
-    records = response.data or []   # ✅ safe fallback
 
-    if not records:
-        return "⚠ No records found in database."
+    filter_date = request.args.get("filter_date")
+    query = supabase.table("attendance").select("*")
 
-    df = pd.DataFrame(records)
+    if filter_date:
+        query = query.eq("date", filter_date)
+
+    response = query.execute()
+    df = pd.DataFrame(response.data)
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Attendance")
-    output.seek(0)   # ✅ reset pointer
+    output.seek(0)
 
     return send_file(
         output,
