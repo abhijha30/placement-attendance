@@ -6,7 +6,7 @@ from supabase import create_client, Client
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
-ADMIN_PASSWORD = "itsplacement"  # change this if needed
+ADMIN_PASSWORD = "itsplacement"
 
 # ---------------- Supabase Setup ----------------
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -17,17 +17,27 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
+        roll = request.form.get("roll")
+        date = request.form.get("date")
+        company = request.form.get("company")
+
+        # 🔒 Prevent duplicate entry
+        existing = supabase.table("attendance").select("*").eq("roll", roll).eq("date", date).eq("company", company).execute()
+        if existing.data:
+            return render_template("submitted.html", message="⚠ You have already submitted attendance for this company today.")
+
         data = {
             "name": request.form.get("name"),
-            "roll": request.form.get("roll"),
+            "roll": roll,
             "course": request.form.get("course"),
             "section": request.form.get("section"),
-            "date": request.form.get("date"),
-            "company": request.form.get("company"),
+            "date": date,
+            "company": company,
             "status": request.form.get("status"),
+            "on_spot": request.form.get("on_spot")  # ✅ NEW field
         }
         supabase.table("attendance").insert(data).execute()
-        return render_template("submitted.html")
+        return render_template("submitted.html", message="✅ Attendance submitted successfully!")
     return render_template("form.html")
 
 # ---------------- Admin Login ----------------
@@ -48,8 +58,9 @@ def records():
     if not session.get("admin"):
         return redirect(url_for("admin"))
 
-    selected_date = request.args.get("filter_date", "").strip()
-    selected_company = request.args.get("filter_company", "").strip()
+    selected_date = request.args.get("filter_date")
+    selected_company = request.args.get("filter_company")
+    selected_course = request.args.get("filter_course")
 
     query = supabase.table("attendance").select("*")
 
@@ -57,16 +68,16 @@ def records():
         query = query.eq("date", selected_date)
     if selected_company:
         query = query.ilike("company", f"%{selected_company}%")
+    if selected_course:
+        query = query.eq("course", selected_course)
 
     response = query.execute()
-    records = response.data if response and response.data else []
+    records = response.data
 
-    return render_template(
-        "records.html",
-        records=records,
-        selected_date=selected_date,
-        selected_company=selected_company
-    )
+    return render_template("records.html", records=records, 
+                           selected_date=selected_date, 
+                           selected_company=selected_company,
+                           selected_course=selected_course)
 
 # ---------------- Download as Excel ----------------
 @app.route("/download")
@@ -74,9 +85,9 @@ def download():
     if not session.get("admin"):
         return redirect(url_for("admin"))
 
-    # Get filters safely
     filter_date = request.args.get("filter_date", "").strip()
     filter_company = request.args.get("filter_company", "").strip()
+    filter_course = request.args.get("filter_course", "").strip()
 
     query = supabase.table("attendance").select("*")
 
@@ -84,37 +95,30 @@ def download():
         query = query.eq("date", filter_date)
     if filter_company:
         query = query.ilike("company", f"%{filter_company}%")
+    if filter_course:
+        query = query.eq("course", filter_course)
 
-    try:
-        response = query.execute()
-        records = response.data if response and response.data else []
-    except Exception as e:
-        return f"⚠ Error fetching data: {str(e)}"
+    response = query.execute()
+    records = response.data if response.data else []
 
     if not records:
         return "⚠ No records found!"
 
-    try:
-        df = pd.DataFrame.from_records(records)
-    except Exception as e:
-        return f"⚠ Error converting to DataFrame: {str(e)}"
+    df = pd.DataFrame(records)
 
-    # Decide file name
+    # File name logic
     file_name = "attendance.xlsx"
-    if filter_date and filter_company:
-        file_name = f"{filter_company}_{filter_date}_attendance.xlsx"
-    elif filter_date:
-        file_name = f"{filter_date}_attendance.xlsx"
-    elif filter_company:
+    if filter_course:
+        file_name = f"{filter_course}_attendance.xlsx"
+    if filter_company:
         file_name = f"{filter_company}_attendance.xlsx"
+    if filter_date:
+        file_name = f"{filter_date}_attendance.xlsx"
 
     output = io.BytesIO()
-    try:
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name="Attendance")
-        output.seek(0)
-    except Exception as e:
-        return f"⚠ Error writing Excel: {str(e)}"
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Attendance")
+    output.seek(0)
 
     return send_file(
         output,
