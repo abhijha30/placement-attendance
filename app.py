@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 from supabase import create_client, Client
-from postgrest.exceptions import APIError   # ✅ catch Supabase errors
+from postgrest.exceptions import APIError   # ✅ needed to catch Supabase errors
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
@@ -13,6 +13,7 @@ ADMIN_PASSWORD = "itsplacement"
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 # ---------------- Student Panel ----------------
 @app.route("/", methods=["GET", "POST"])
@@ -27,37 +28,29 @@ def index():
         if not roll or not course or not date or not company:
             return render_template("submitted.html", message="⚠ Missing required data!")
 
-        data = {
-            "name": request.form.get("name"),
-            "roll": roll,
-            "course": course,
-            "section": request.form.get("section"),
-            "date": date,
-            "company": company,
-            "status": request.form.get("status"),
-            "on_spot": request.form.get("on_spot")  # extra field
-        }
-
         try:
-            # ✅ Insert and log response
+            # ✅ Insert directly (DB enforces uniqueness)
+            data = {
+                "name": request.form.get("name"),
+                "roll": roll,
+                "course": course,
+                "section": request.form.get("section"),
+                "date": date,
+                "company": company,
+                "status": request.form.get("status"),
+                "on_spot": request.form.get("on_spot")  # extra field
+            }
             response = supabase.table("attendance").insert(data).execute()
-            print("✅ INSERT RESPONSE:", response)   # 👈 check this in logs
-
-            if response.data:
-                return render_template("submitted.html", message="✅ Attendance submitted successfully!")
-            else:
-                return render_template("submitted.html", message=f"⚠ Insert failed: {response}")
+            app.logger.info("✅ INSERT RESPONSE: %s", response)  # 🔥 Log success
+            return render_template("submitted.html", message="✅ Attendance submitted successfully!")
 
         except APIError as e:
+            app.logger.error("❌ INSERT ERROR: %s", str(e))  # 🔥 Log failure
             if "duplicate key value violates unique constraint" in str(e):
                 return render_template("submitted.html",
                                        message="⚠ Already submitted for this course & company today.")
             else:
                 return render_template("submitted.html", message=f"⚠ Database Error: {str(e)}")
-
-        except Exception as e:
-            print("❌ INSERT ERROR:", str(e))
-            return render_template("submitted.html", message=f"⚠ Unexpected Error: {str(e)}")
 
     return render_template("form.html")
 
@@ -81,9 +74,9 @@ def records():
     if not session.get("admin"):
         return redirect(url_for("admin"))
 
-    selected_date = request.args.get("filter_date") or None
-    selected_company = request.args.get("filter_company") or None
-    selected_course = request.args.get("filter_course") or None
+    selected_date = request.args.get("filter_date")
+    selected_company = request.args.get("filter_company")
+    selected_course = request.args.get("filter_course")
 
     query = supabase.table("attendance").select("*")
 
@@ -95,8 +88,7 @@ def records():
         query = query.eq("course", selected_course)
 
     response = query.execute()
-    print("📊 RECORDS RESPONSE:", response)   # 👈 log what comes back
-    records = response.data if response.data else []
+    records = response.data
 
     return render_template("records.html",
                            records=records,
@@ -125,7 +117,6 @@ def download():
         query = query.eq("course", filter_course)
 
     response = query.execute()
-    print("⬇ DOWNLOAD RESPONSE:", response)   # 👈 log downloads
     records = response.data if response.data else []
 
     if not records:
@@ -165,4 +156,5 @@ def logout():
 # ✅ Vercel entry
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
