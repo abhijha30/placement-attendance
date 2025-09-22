@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 from supabase import create_client, Client
-from postgrest.exceptions import APIError   # ✅ needed to catch Supabase errors
+from postgrest.exceptions import APIError   # ✅ catch Supabase errors
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
@@ -27,20 +27,26 @@ def index():
         if not roll or not course or not date or not company:
             return render_template("submitted.html", message="⚠ Missing required data!")
 
+        data = {
+            "name": request.form.get("name"),
+            "roll": roll,
+            "course": course,
+            "section": request.form.get("section"),
+            "date": date,
+            "company": company,
+            "status": request.form.get("status"),
+            "on_spot": request.form.get("on_spot")  # extra field
+        }
+
         try:
-            # ✅ Insert directly (DB enforces uniqueness)
-            data = {
-                "name": request.form.get("name"),
-                "roll": roll,
-                "course": course,
-                "section": request.form.get("section"),
-                "date": date,
-                "company": company,
-                "status": request.form.get("status"),
-                "on_spot": request.form.get("on_spot")  # extra field
-            }
-            supabase.table("attendance").insert(data).execute()
-            return render_template("submitted.html", message="✅ Attendance submitted successfully!")
+            # ✅ Insert and log response
+            response = supabase.table("attendance").insert(data).execute()
+            print("✅ INSERT RESPONSE:", response)   # 👈 check this in logs
+
+            if response.data:
+                return render_template("submitted.html", message="✅ Attendance submitted successfully!")
+            else:
+                return render_template("submitted.html", message=f"⚠ Insert failed: {response}")
 
         except APIError as e:
             if "duplicate key value violates unique constraint" in str(e):
@@ -48,6 +54,10 @@ def index():
                                        message="⚠ Already submitted for this course & company today.")
             else:
                 return render_template("submitted.html", message=f"⚠ Database Error: {str(e)}")
+
+        except Exception as e:
+            print("❌ INSERT ERROR:", str(e))
+            return render_template("submitted.html", message=f"⚠ Unexpected Error: {str(e)}")
 
     return render_template("form.html")
 
@@ -71,9 +81,9 @@ def records():
     if not session.get("admin"):
         return redirect(url_for("admin"))
 
-    selected_date = request.args.get("filter_date")
-    selected_company = request.args.get("filter_company")
-    selected_course = request.args.get("filter_course")
+    selected_date = request.args.get("filter_date") or None
+    selected_company = request.args.get("filter_company") or None
+    selected_course = request.args.get("filter_course") or None
 
     query = supabase.table("attendance").select("*")
 
@@ -85,7 +95,8 @@ def records():
         query = query.eq("course", selected_course)
 
     response = query.execute()
-    records = response.data
+    print("📊 RECORDS RESPONSE:", response)   # 👈 log what comes back
+    records = response.data if response.data else []
 
     return render_template("records.html",
                            records=records,
@@ -114,6 +125,7 @@ def download():
         query = query.eq("course", filter_course)
 
     response = query.execute()
+    print("⬇ DOWNLOAD RESPONSE:", response)   # 👈 log downloads
     records = response.data if response.data else []
 
     if not records:
@@ -153,3 +165,4 @@ def logout():
 # ✅ Vercel entry
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
