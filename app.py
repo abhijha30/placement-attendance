@@ -3,6 +3,7 @@ import pandas as pd
 import io
 import os
 from supabase import create_client, Client
+from postgrest.exceptions import APIError   # ✅ needed to catch Supabase errors
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
@@ -22,34 +23,31 @@ def index():
         company = request.form.get("company")
         course = request.form.get("course")
 
-        # ✅ Validate inputs
+        # ✅ Validate required fields
         if not roll or not course or not date or not company:
             return render_template("submitted.html", message="⚠ Missing required data!")
 
-        # ✅ Prevent duplicate for same roll+course+date+company
-        existing = supabase.table("attendance").select("*") \
-            .eq("roll", roll) \
-            .eq("course", course) \
-            .eq("date", date) \
-            .eq("company", company) \
-            .execute()
+        try:
+            # ✅ Insert directly (DB enforces uniqueness)
+            data = {
+                "name": request.form.get("name"),
+                "roll": roll,
+                "course": course,
+                "section": request.form.get("section"),
+                "date": date,
+                "company": company,
+                "status": request.form.get("status"),
+                "on_spot": request.form.get("on_spot")  # extra field
+            }
+            supabase.table("attendance").insert(data).execute()
+            return render_template("submitted.html", message="✅ Attendance submitted successfully!")
 
-        if existing.data:
-            return render_template("submitted.html", message="⚠ Already submitted for this course & company today.")
-
-        # ✅ Insert new record
-        data = {
-            "name": request.form.get("name"),
-            "roll": roll,
-            "course": course,
-            "section": request.form.get("section"),
-            "date": date,
-            "company": company,
-            "status": request.form.get("status"),
-            "on_spot": request.form.get("on_spot")  # new field
-        }
-        supabase.table("attendance").insert(data).execute()
-        return render_template("submitted.html", message="✅ Attendance submitted successfully!")
+        except APIError as e:
+            if "duplicate key value violates unique constraint" in str(e):
+                return render_template("submitted.html",
+                                       message="⚠ Already submitted for this course & company today.")
+            else:
+                return render_template("submitted.html", message=f"⚠ Database Error: {str(e)}")
 
     return render_template("form.html")
 
