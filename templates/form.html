@@ -37,6 +37,7 @@
         <div class="mb-3">
           <label class="form-label">Course</label>
           <select name="course" class="form-select" required>
+            <option value="">-- Select Course --</option>
             <option>BCA</option>
             <option>BBA</option>
           </select>
@@ -45,6 +46,7 @@
         <div class="mb-3">
           <label class="form-label">Section</label>
           <select name="section" class="form-select" required>
+            <option value="">-- Select Section --</option>
             <option>A</option><option>B</option><option>C</option>
             <option>D</option><option>E</option><option>F</option><option>G</option>
           </select>
@@ -63,8 +65,19 @@
         <div class="mb-3">
           <label class="form-label">Status</label>
           <select name="status" class="form-select" required>
+            <option value="">-- Select Status --</option>
             <option>Present</option>
             <option>Absent</option>
+          </select>
+        </div>
+
+        <!-- ✅ New On Spot Option -->
+        <div class="mb-3">
+          <label class="form-label">On Spot</label>
+          <select name="on_spot" class="form-select" required>
+            <option value="">-- Select --</option>
+            <option>Yes</option>
+            <option>No</option>
           </select>
         </div>
 
@@ -75,3 +88,4 @@
 
 </body>
 </html>
+>
