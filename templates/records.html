@@ -21,15 +21,22 @@
 
       <h2 class="text-center mb-4">📊 Attendance Records</h2>
 
-      <!-- Filter Form (Date + Company Input) -->
+      <!-- Filter Form (Date + Company + Course) -->
       <form method="GET" action="/records" class="row g-2 mb-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <input type="date" name="filter_date" class="form-control" value="{{ selected_date }}">
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <input type="text" name="filter_company" class="form-control" placeholder="Company name" value="{{ selected_company }}">
         </div>
-        <div class="col-md-4 d-flex">
+        <div class="col-md-3">
+          <select name="filter_course" class="form-select">
+            <option value="">All Courses</option>
+            <option value="BBA" {% if selected_course == "BBA" %}selected{% endif %}>BBA</option>
+            <option value="BCA" {% if selected_course == "BCA" %}selected{% endif %}>BCA</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex">
           <button type="submit" class="btn btn-primary me-2">Filter</button>
           <a href="/records" class="btn btn-secondary me-2">Clear</a>
           <a href="/logout" class="btn btn-danger">🚪 Logout</a>
@@ -41,6 +48,7 @@
         <form method="GET" action="/download" class="d-flex">
           <input type="hidden" name="filter_date" value="{{ selected_date }}">
           <input type="hidden" name="filter_company" value="{{ selected_company }}">
+          <input type="hidden" name="filter_course" value="{{ selected_course }}">
           <button type="submit" class="btn btn-success">⬇ Download Excel</button>
         </form>
       </div>
@@ -58,6 +66,7 @@
               <th>Date</th>
               <th>Company</th>
               <th>Status</th>
+              <th>On Spot</th> <!-- ✅ Added Column -->
             </tr>
           </thead>
           <tbody>
@@ -75,6 +84,13 @@
                     <span class="badge bg-success">Present</span>
                   {% else %}
                     <span class="badge bg-danger">Absent</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if row["on_spot"] == "Yes" %}
+                    <span class="badge bg-primary">Yes</span>
+                  {% else %}
+                    <span class="badge bg-secondary">No</span>
                   {% endif %}
                 </td>
               </tr>
