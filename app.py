@@ -18,18 +18,31 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def index():
     if request.method == "POST":
         roll = request.form.get("roll")
+        course = request.form.get("course")
         date = request.form.get("date")
         company = request.form.get("company")
 
-        # 🔒 Prevent duplicate entry
-        existing = supabase.table("attendance").select("*").eq("roll", roll).eq("date", date).eq("company", company).execute()
+        # 🔒 Prevent duplicate entry (roll + course + date + company)
+        existing = (
+            supabase.table("attendance")
+            .select("*")
+            .eq("roll", roll)
+            .eq("course", course)
+            .eq("date", date)
+            .eq("company", company)
+            .execute()
+        )
+
         if existing.data:
-            return render_template("submitted.html", message="⚠ You have already submitted attendance for this company today.")
+            return render_template(
+                "submitted.html",
+                message="⚠ You have already submitted attendance for this course & company today."
+            )
 
         data = {
             "name": request.form.get("name"),
             "roll": roll,
-            "course": request.form.get("course"),
+            "course": course,
             "section": request.form.get("section"),
             "date": date,
             "company": company,
@@ -74,10 +87,13 @@ def records():
     response = query.execute()
     records = response.data
 
-    return render_template("records.html", records=records, 
-                           selected_date=selected_date, 
-                           selected_company=selected_company,
-                           selected_course=selected_course)
+    return render_template(
+        "records.html",
+        records=records,
+        selected_date=selected_date,
+        selected_company=selected_company,
+        selected_course=selected_course,
+    )
 
 # ---------------- Download as Excel ----------------
 @app.route("/download")
@@ -106,14 +122,16 @@ def download():
 
     df = pd.DataFrame(records)
 
-    # File name logic
-    file_name = "attendance.xlsx"
+    # File name logic → combine filters
+    parts = []
     if filter_course:
-        file_name = f"{filter_course}_attendance.xlsx"
+        parts.append(filter_course)
     if filter_company:
-        file_name = f"{filter_company}_attendance.xlsx"
+        parts.append(filter_company)
     if filter_date:
-        file_name = f"{filter_date}_attendance.xlsx"
+        parts.append(filter_date)
+
+    file_name = "_".join(parts) + "_attendance.xlsx" if parts else "attendance.xlsx"
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
