@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, send_file, session, url_for
+    from flask import Flask, render_template, request, redirect, send_file, session, url_for
 import pandas as pd
 import io
 import os
@@ -18,26 +18,20 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def index():
     if request.method == "POST":
         roll = request.form.get("roll")
-        course = request.form.get("course")
         date = request.form.get("date")
         company = request.form.get("company")
+        course = request.form.get("course")
 
-        # 🔒 Prevent duplicate entry (roll + course + date + company)
-        existing = (
-            supabase.table("attendance")
-            .select("*")
-            .eq("roll", roll)
-            .eq("course", course)
-            .eq("date", date)
-            .eq("company", company)
+        # 🔒 Prevent duplicate entry for SAME roll, SAME course, SAME date, SAME company
+        existing = supabase.table("attendance").select("*")\
+            .eq("roll", roll)\
+            .eq("date", date)\
+            .eq("company", company)\
+            .eq("course", course)\
             .execute()
-        )
 
         if existing.data:
-            return render_template(
-                "submitted.html",
-                message="⚠ You have already submitted attendance for this course & company today."
-            )
+            return render_template("submitted.html", message="⚠ You have already submitted attendance for this course & company today.")
 
         data = {
             "name": request.form.get("name"),
@@ -51,6 +45,7 @@ def index():
         }
         supabase.table("attendance").insert(data).execute()
         return render_template("submitted.html", message="✅ Attendance submitted successfully!")
+
     return render_template("form.html")
 
 # ---------------- Admin Login ----------------
@@ -87,13 +82,10 @@ def records():
     response = query.execute()
     records = response.data
 
-    return render_template(
-        "records.html",
-        records=records,
-        selected_date=selected_date,
-        selected_company=selected_company,
-        selected_course=selected_course,
-    )
+    return render_template("records.html", records=records, 
+                           selected_date=selected_date, 
+                           selected_company=selected_company,
+                           selected_course=selected_course)
 
 # ---------------- Download as Excel ----------------
 @app.route("/download")
@@ -122,16 +114,14 @@ def download():
 
     df = pd.DataFrame(records)
 
-    # File name logic → combine filters
-    parts = []
+    # File name logic
+    file_name = "attendance.xlsx"
     if filter_course:
-        parts.append(filter_course)
+        file_name = f"{filter_course}_attendance.xlsx"
     if filter_company:
-        parts.append(filter_company)
+        file_name = f"{filter_company}_attendance.xlsx"
     if filter_date:
-        parts.append(filter_date)
-
-    file_name = "_".join(parts) + "_attendance.xlsx" if parts else "attendance.xlsx"
+        file_name = f"{filter_date}_attendance.xlsx"
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
