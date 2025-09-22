@@ -32,8 +32,8 @@
         <div class="col-md-3">
           <select name="filter_course" class="form-select">
             <option value="">All Courses</option>
-            <option value="BBA" {% if selected_course == "BBA" %}selected{% endif %}>BBA</option>
             <option value="BCA" {% if selected_course == "BCA" %}selected{% endif %}>BCA</option>
+            <option value="BBA" {% if selected_course == "BBA" %}selected{% endif %}>BBA</option>
           </select>
         </div>
         <div class="col-md-3 d-flex">
@@ -66,13 +66,13 @@
               <th>Date</th>
               <th>Company</th>
               <th>Status</th>
-              <th>On Spot</th> <!-- ✅ Added Column -->
+              <th>On Spot</th> <!-- ✅ New Column -->
             </tr>
           </thead>
           <tbody>
             {% for row in records %}
               <tr>
-                <td>{{ loop.index }}</td> <!-- Serial Number -->
+                <td>{{ loop.index }}</td>
                 <td>{{ row["name"] }}</td>
                 <td>{{ row["roll"] }}</td>
                 <td>{{ row["course"] }}</td>
@@ -88,7 +88,7 @@
                 </td>
                 <td>
                   {% if row["on_spot"] == "Yes" %}
-                    <span class="badge bg-primary">Yes</span>
+                    <span class="badge bg-info">Yes</span>
                   {% else %}
                     <span class="badge bg-secondary">No</span>
                   {% endif %}
