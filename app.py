@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 from supabase import create_client, Client
-from postgrest.exceptions import APIError   # ✅ needed to catch Supabase errors
+from postgrest.exceptions import APIError   # ✅ catch Supabase DB errors
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
@@ -13,7 +13,6 @@ ADMIN_PASSWORD = "itsplacement"
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
 
 # ---------------- Student Panel ----------------
 @app.route("/", methods=["GET", "POST"])
@@ -29,7 +28,7 @@ def index():
             return render_template("submitted.html", message="⚠ Missing required data!")
 
         try:
-            # ✅ Insert directly (DB enforces uniqueness)
+            # ✅ Insert (DB enforces uniqueness constraint)
             data = {
                 "name": request.form.get("name"),
                 "roll": roll,
@@ -38,17 +37,15 @@ def index():
                 "date": date,
                 "company": company,
                 "status": request.form.get("status"),
-                "on_spot": request.form.get("on_spot")  # extra field
+                "on_spot": request.form.get("on_spot")
             }
-            response = supabase.table("attendance").insert(data).execute()
-            app.logger.info("✅ INSERT RESPONSE: %s", response)  # 🔥 Log success
+            supabase.table("attendance").insert(data).execute()
             return render_template("submitted.html", message="✅ Attendance submitted successfully!")
 
         except APIError as e:
-            app.logger.error("❌ INSERT ERROR: %s", str(e))  # 🔥 Log failure
             if "duplicate key value violates unique constraint" in str(e):
                 return render_template("submitted.html",
-                                       message="⚠ Already submitted for this course & company today.")
+                                       message="⚠ Already submitted for this company & course today.")
             else:
                 return render_template("submitted.html", message=f"⚠ Database Error: {str(e)}")
 
@@ -156,5 +153,3 @@ def logout():
 # ✅ Vercel entry
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
-
