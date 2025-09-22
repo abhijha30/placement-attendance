@@ -22,17 +22,22 @@ def index():
         company = request.form.get("company")
         course = request.form.get("course")
 
-        # 🔒 Prevent duplicate entry for SAME roll, SAME course, SAME date, SAME company
-        existing = supabase.table("attendance").select("*")\
-            .eq("roll", roll)\
-            .eq("date", date)\
-            .eq("company", company)\
-            .eq("course", course)\
+        # ✅ Validate inputs
+        if not roll or not course or not date or not company:
+            return render_template("submitted.html", message="⚠ Missing required data!")
+
+        # ✅ Prevent duplicate for same roll+course+date+company
+        existing = supabase.table("attendance").select("*") \
+            .eq("roll", roll) \
+            .eq("course", course) \
+            .eq("date", date) \
+            .eq("company", company) \
             .execute()
 
         if existing.data:
-            return render_template("submitted.html", message="⚠ You have already submitted attendance for this course & company today.")
+            return render_template("submitted.html", message="⚠ Already submitted for this course & company today.")
 
+        # ✅ Insert new record
         data = {
             "name": request.form.get("name"),
             "roll": roll,
@@ -41,12 +46,13 @@ def index():
             "date": date,
             "company": company,
             "status": request.form.get("status"),
-            "on_spot": request.form.get("on_spot")  # ✅ NEW field
+            "on_spot": request.form.get("on_spot")  # new field
         }
         supabase.table("attendance").insert(data).execute()
         return render_template("submitted.html", message="✅ Attendance submitted successfully!")
 
     return render_template("form.html")
+
 
 # ---------------- Admin Login ----------------
 @app.route("/admin", methods=["GET", "POST"])
@@ -59,6 +65,7 @@ def admin():
         else:
             return render_template("admin.html", error="❌ Wrong password!")
     return render_template("admin.html", error=None)
+
 
 # ---------------- Admin Panel ----------------
 @app.route("/records")
@@ -82,10 +89,12 @@ def records():
     response = query.execute()
     records = response.data
 
-    return render_template("records.html", records=records, 
-                           selected_date=selected_date, 
+    return render_template("records.html",
+                           records=records,
+                           selected_date=selected_date,
                            selected_company=selected_company,
                            selected_course=selected_course)
+
 
 # ---------------- Download as Excel ----------------
 @app.route("/download")
@@ -135,11 +144,13 @@ def download():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+
 # ---------------- Logout ----------------
 @app.route("/logout")
 def logout():
     session.pop("admin", None)
     return redirect(url_for("admin"))
+
 
 # ✅ Vercel entry
 if __name__ == "__main__":
