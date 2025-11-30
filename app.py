@@ -3,34 +3,32 @@ import pandas as pd
 import io
 import os
 from supabase import create_client, Client
-from postgrest.exceptions import APIError   # Handles Supabase DB errors
+from postgrest.exceptions import APIError   # ✅ catch Supabase DB errors
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
-
-# Admin password (ENV first → fallback to default)
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "itsplacement25")
+ADMIN_PASSWORD = "itsplacement25"
 
 # ---------------- Supabase Setup ----------------
-SUPABASE_URL = os.environ.get("https://dsasywpfgomnrhhpvfdh.supabase.co")
-SUPABASE_KEY = os.environ.get(eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzYXN5d3BmZ29tbnJoaHB2ZmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNzg1NDYsImV4cCI6MjA3Mzg1NDU0Nn0.YUbh42wUoZFON9NizD-vmrKGgea6D1tSMBIFAuFHX8s")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
 
 # ---------------- Student Panel ----------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
         roll = request.form.get("roll")
-        course = request.form.get("course")
         date = request.form.get("date")
         company = request.form.get("company")
+        course = request.form.get("course")
 
-        # Required validation
+        # ✅ Validate required fields
         if not roll or not course or not date or not company:
-            return render_template("submitted.html", message="⚠ Missing required fields!")
+            return render_template("submitted.html", message="⚠ Missing required data!")
 
         try:
+            # ✅ Insert (DB enforces uniqueness constraint)
             data = {
                 "name": request.form.get("name"),
                 "roll": roll,
@@ -41,25 +39,15 @@ def index():
                 "status": request.form.get("status"),
                 "on_spot": request.form.get("on_spot")
             }
-
-            # Insert data
             supabase.table("attendance").insert(data).execute()
-            return render_template(
-                "submitted.html",
-                message="✅ Attendance submitted successfully!"
-            )
+            return render_template("submitted.html", message="✅ Attendance submitted successfully!")
 
         except APIError as e:
-            # Prevent duplicate crash
-            if "duplicate key value" in str(e):
-                return render_template(
-                    "submitted.html",
-                    message="⚠ Already submitted for this company/course today."
-                )
-            return render_template(
-                "submitted.html",
-                message=f"⚠ Database Error: {str(e)}"
-            )
+            if "duplicate key value violates unique constraint" in str(e):
+                return render_template("submitted.html",
+                                       message="⚠ Already submitted for this company & course today.")
+            else:
+                return render_template("submitted.html", message=f"⚠ Database Error: {str(e)}")
 
     return render_template("form.html")
 
@@ -69,13 +57,11 @@ def index():
 def admin():
     if request.method == "POST":
         password = request.form.get("password")
-
         if password == ADMIN_PASSWORD:
             session["admin"] = True
             return redirect(url_for("records"))
         else:
             return render_template("admin.html", error="❌ Wrong password!")
-
     return render_template("admin.html", error=None)
 
 
@@ -101,16 +87,14 @@ def records():
     response = query.execute()
     records = response.data
 
-    return render_template(
-        "records.html",
-        records=records,
-        selected_date=selected_date,
-        selected_company=selected_company,
-        selected_course=selected_course
-    )
+    return render_template("records.html",
+                           records=records,
+                           selected_date=selected_date,
+                           selected_company=selected_company,
+                           selected_course=selected_course)
 
 
-# ---------------- Download Excel ----------------
+# ---------------- Download as Excel ----------------
 @app.route("/download")
 def download():
     if not session.get("admin"):
@@ -133,20 +117,18 @@ def download():
     records = response.data if response.data else []
 
     if not records:
-        return "⚠ No records found to download!"
+        return "⚠ No records found!"
 
     df = pd.DataFrame(records)
 
-    # Smart filename
-    parts = []
-    if filter_date:
-        parts.append(filter_date)
-    if filter_company:
-        parts.append(filter_company)
+    # File name logic
+    file_name = "attendance.xlsx"
     if filter_course:
-        parts.append(filter_course)
-
-    file_name = "_".join(parts) + "_attendance.xlsx" if parts else "attendance.xlsx"
+        file_name = f"{filter_course}_attendance.xlsx"
+    if filter_company:
+        file_name = f"{filter_company}_attendance.xlsx"
+    if filter_date:
+        file_name = f"{filter_date}_attendance.xlsx"
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -168,6 +150,6 @@ def logout():
     return redirect(url_for("admin"))
 
 
-# ---------------- Local Testing Only ----------------
+# ✅ Vercel entry
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
