@@ -8,12 +8,12 @@ from postgrest.exceptions import APIError
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
 
-# ---------------- Admin Password ----------------
+# ---------------- Admin Password (Vercel or default) ----------------
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "itsplacement")
 
-# ---------------- Supabase Setup ----------------
-SUPABASE_URL = "https://dsasywpfgomnrhhpvfdh.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzYXN5d3BmZ29tbnJoaHB2ZmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNzg1NDYsImV4cCI6MjA3Mzg1NDU0Nn0.YUbh42wUoZFON9NizD-vmrKGgea6D1tSMBIFAuFHX8s"
+# ---------------- Supabase Setup (MUST be env variables) ----------------
+SUPABASE_URL = os.environ.get("https://dsasywpfgomnrhhpvfdh.supabase.co")
+SUPABASE_KEY = os.environ.get("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzYXN5d3BmZ29tbnJoaHB2ZmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNzg1NDYsImV4cCI6MjA3Mzg1NDU0Nn0.YUbh42wUoZFON9NizD-vmrKGgea6D1tSMBIFAuFHX8s")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -103,7 +103,7 @@ def records():
     )
 
 
-# ---------------- Download Excel ----------------
+# ---------------- Download Excel (FINAL FIX) ----------------
 @app.route("/download")
 def download():
     if not session.get("admin"):
@@ -122,33 +122,39 @@ def download():
     if filter_course:
         query = query.eq("course", filter_course)
 
-    response = query.execute()
-    records = response.data if response.data else []
+    try:
+        response = query.execute()
+        records = response.data
 
-    if not records:
-        return "⚠ No records found!"
+        if not records:
+            return "⚠ No records found!"
 
-    df = pd.DataFrame(records)
+        df = pd.DataFrame(records)
+        df = df.astype(str)  # Prevent Excel-type errors
 
-    file_name = "attendance.xlsx"
-    if filter_course:
-        file_name = f"{filter_course}_attendance.xlsx"
-    if filter_company:
-        file_name = f"{filter_company}_attendance.xlsx"
-    if filter_date:
-        file_name = f"{filter_date}_attendance.xlsx"
+        # File naming
+        file_name = "attendance.xlsx"
+        if filter_date:
+            file_name = f"{filter_date}_attendance.xlsx"
+        elif filter_company:
+            file_name = f"{filter_company}_attendance.xlsx"
+        elif filter_course:
+            file_name = f"{filter_course}_attendance.xlsx"
 
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Attendance")
-    output.seek(0)
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Attendance")
+        output.seek(0)
 
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name=file_name,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=file_name,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception as e:
+        return f"❌ Excel generation failed: {str(e)}"
 
 
 # ---------------- Logout ----------------
