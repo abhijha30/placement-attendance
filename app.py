@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = "super-secret-key"
 
 # ---------------- Admin Password ----------------
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "itsplacement")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "itsugplacement")
 
 # ---------------- Supabase Setup ----------------
 SUPABASE_URL = "https://dsasywpfgomnrhhpvfdh.supabase.co"
