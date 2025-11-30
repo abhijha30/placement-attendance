@@ -7,7 +7,7 @@ from postgrest.exceptions import APIError   # ✅ catch Supabase DB errors
 
 app = Flask(__name__)
 app.secret_key = "super-secret-key"
-ADMIN_PASSWORD = "ugitsplacement"
+ADMIN_PASSWORD = "itsplacement25"
 
 # ---------------- Supabase Setup ----------------
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
