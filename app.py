@@ -12,8 +12,8 @@ app.secret_key = "super-secret-key"
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "itsplacement25")
 
 # ---------------- Supabase Setup ----------------
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_URL = os.environ.get("https://dsasywpfgomnrhhpvfdh.supabase.co")
+SUPABASE_KEY = os.environ.get(eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzYXN5d3BmZ29tbnJoaHB2ZmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNzg1NDYsImV4cCI6MjA3Mzg1NDU0Nn0.YUbh42wUoZFON9NizD-vmrKGgea6D1tSMBIFAuFHX8s")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
